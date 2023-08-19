@@ -1,0 +1,61 @@
+//声明proto版本
+syntax = "proto3";
+
+//声明代码所在包(namespace)
+package ik;
+
+// 定义下面的选项，表示生成service服务类和rpc方法描述，默认不生成
+option cc_generic_services = true;
+
+message ErrorMsg
+{
+    int32 error = 1;
+    bytes error_msg = 2;
+}
+
+// ==> class User:public google::protobuf::Message
+message User
+{
+    bytes name = 1;
+    uint32 age = 2;
+    
+    enum Sex
+    {
+        man = 0;
+        woman = 1;
+    }
+    Sex sex = 3;
+}
+
+//登陆请求消息类型
+message LoginRequest
+{
+    string name = 1;    //1表示是第一个字段
+    string password = 2;
+}
+
+// 登录相应消息类型
+message LoginResponse
+{
+    ErrorMsg error = 1;
+    bool success = 2;
+}
+
+message GetFriendListRequest
+{
+    uint32 userid = 1;
+}
+
+message GetFriendListResponse
+{
+    ErrorMsg error = 1;
+    repeated User friendlists = 2;
+}
+
+// ==>class UserServiceRpc:public: google::protobuf::Service
+service UserServiceRpc
+{
+    rpc Login(LoginRequest) returns(LoginResponse);  //login方法接受一个loginrequest的形参返回一个loginresponse的返回值
+    rpc GetFriendList(GetFriendListRequest) returns(GetFriendListResponse);
+
+}
