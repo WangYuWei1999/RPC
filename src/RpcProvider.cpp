@@ -39,7 +39,7 @@ void RpcProvider::notity_service(google::protobuf::Service* service){
 
 //启动rpc服务节点，开始提供rpc远程网络调用服务
 void RpcProvider::run(){
-    //获取ip和端口
+    //获取本地ip和端口
     std::string ip = RpcApplication::get_instance().get_configure().find_load("rpcserver_ip");
     uint16_t port = atoi(RpcApplication::get_instance().get_configure().find_load("rpcserver_port").c_str());
     muduo::net::InetAddress address(ip, port);
@@ -60,14 +60,15 @@ void RpcProvider::run(){
     zk_client.start();
 
     //在配置中心创建节点(遍历所有服务对象)
+    //同一个服务的所有方法ip地址都一样
     for(auto& sp:service_map_){
-        std::string service_path = "/" + sp.first;
+        std::string service_path = "/" + sp.first;          //服务名称
         zk_client.create(service_path.c_str(), nullptr, 0);
         for(auto& mp:sp.second.method_map_){                    //遍历某个对象提供的所有方法
-            std::string method_path = service_path + "/" + mp.first;
+            std::string method_path = service_path + "/" + mp.first;   //提供服务对象名称+‘/’+方法名称
             char method_path_data[128] = {0};
-            sprintf(method_path_data, "%s:%d", ip.c_str(), port);
-            //ZOO_EPHEMERAL 表示znode时候临时性节点
+            sprintf(method_path_data, "%s:%d", ip.c_str(), port);   //将ip地址：端口写入method_path_data
+            //ZOO_EPHEMERAL 表示znode时候临时性节点，将方法和对于ip端口注册到zk上
             zk_client.create(method_path.c_str(), method_path_data, strlen(method_path_data), ZOO_EPHEMERAL);
         }
     }
@@ -103,11 +104,11 @@ recv_buf = header + args
 //已建立连接的读写事件回调
 void RpcProvider::on_message(const muduo::net::TcpConnectionPtr& conn, muduo::net::Buffer* buffer, muduo::Timestamp stamp){
     //网络上接受的远程rpc调用请求字符流
-    std::string recv_buf = buffer->retrieveAllAsString();
+    std::string recv_buf = buffer->retrieveAllAsString();  //反序列化
 
-    //从字节流中读取前四个字节的内容（利用int特性），即header长度
+    //从字节流中读取前四个字符的内容（利用int特性），即header长度
     uint32_t header_size = 0;
-    recv_buf.copy((char*)&header_size, 4,0);  //前四个字符拷贝到header_size中
+    recv_buf.copy((char*)&header_size, 4,0);  //前四个字节拷贝到header_size中
 
     RPC_LOG_INFO("header size: %d", header_size);
 

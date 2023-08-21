@@ -27,30 +27,30 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
     //获取参数的序列化字符串长度 args_size
     int args_size = 0;
     std::string args_str;
-    if (request->SerializeToString(&args_str)) args_size = args_str.size();
+    if (request->SerializeToString(&args_str)) args_size = args_str.size();  //参数序列化
     else {
         controller->SetFailed("serialize request error!");
         return;
     }
 
     //定义RPC请求header
-    ikrpc::RpcHeader rpc_header;
+    ikrpc::RpcHeader rpc_header; //头部包含了服务名，方法名，参数序列化后的长度
     rpc_header.set_service_name(service_name);
     rpc_header.set_method_name(method_name);
     rpc_header.set_args_size(args_size);
 
     uint32_t header_size = 0;
-    std::string rpc_header_str;
+    std::string rpc_header_str;  //序列化后头部
     if(rpc_header.SerializeToString(&rpc_header_str)) {
         //序列化成功
         header_size = rpc_header_str.size();
     }else {
-        //；序列化失败 
+        //序列化失败 
         controller->SetFailed("serialize rpc_header error");
         return;
     }
 
-    //组织待发送的rpc请求字符串
+    //组织待发送的rpc请求字符串 包括序列化后头部长度，序列化后头部，序列化后参数
     std::string send_rpc_str;
     send_rpc_str.insert(0, std::string((char*)&header_size,4));
     send_rpc_str += rpc_header_str;
@@ -65,9 +65,9 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
 
     //获取ip和端口
     ZookeeperClient zk_client;
-    zk_client.start();         //通过rpcapplication->rpcconfigure查询ip和端口
-    std::string method_path = "/" + service_name + "/" + method_name;
-    std::string host_data = zk_client.get_data(method_path.c_str());
+    zk_client.start();         //zk初始化
+    std::string method_path = "/" + service_name + "/" + method_name;    //利用服务名加方法名查询
+    std::string host_data = zk_client.get_data(method_path.c_str());     //在zk查询到ip端口
     if(host_data == ""){
         controller->SetFailed(method_path+"is not exist");
         return;
@@ -77,8 +77,8 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
         controller->SetFailed(method_path + "address is invalid!");
         return;
     }
-    std::string ip = host_data.substr(0, host_index);
-    uint16_t port = atoi(host_data.substr(host_index+1, host_data.size()-host_index).c_str());
+    std::string ip = host_data.substr(0, host_index);  //取出ip
+    uint16_t port = atoi(host_data.substr(host_index+1, host_data.size()-host_index).c_str());   //取出端口 int atoi(const char*);字符串转整数
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);

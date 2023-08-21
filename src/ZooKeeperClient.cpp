@@ -23,7 +23,7 @@ ZookeeperClient::~ZookeeperClient(){
 
 //启动连接
 void ZookeeperClient::start(){
-    //通过rpcapplication-》rpcconfigure->查询连接信息（ip和端口）
+    //通过rpcapplication-》rpcconfigure->查询zk服务器信息（ip和端口）
     std::string host = RpcApplication::get_instance().get_configure().find_load("zookeeper_ip");
     std::string port = RpcApplication::get_instance().get_configure().find_load("zookeeper_port");
     std::string con_str = host + ":" + port;
@@ -39,7 +39,7 @@ void ZookeeperClient::start(){
     RPC_LOG_INFO("zookeeper init success");
 }
 
-//在zkserver 根据指定的path创建znode节点
+//在zkserver 根据指定的path创建znode节点 （服务对象对应的ip：端口）
 void ZookeeperClient::create(const char* path, const char* data, int datalen, int state){
     char path_buffer[128] = {0};
     int buffer_len = sizeof(path_buffer);
@@ -48,7 +48,7 @@ void ZookeeperClient::create(const char* path, const char* data, int datalen, in
     //同步检查path是否存在
     flag = zoo_exists(zhandle_, path, 0, nullptr);
     if(flag == ZNONODE){  //不存在
-        flag = zoo_create(zhandle_, path,data, datalen, &ZOO_OPEN_ACL_UNSAFE, state, path_buffer,buffer_len);
+        flag = zoo_create(zhandle_, path, data, datalen, &ZOO_OPEN_ACL_UNSAFE, state, path_buffer, buffer_len);
     }
 
     if(flag == ZOK) //成功 
@@ -58,7 +58,7 @@ void ZookeeperClient::create(const char* path, const char* data, int datalen, in
     else  RPC_LOG_FATAL("falg: %d, znode create error  path: %s", flag, path);
 }
 
-//根据参数指定的znode节点路径，获取znode节点的值
+//根据参数指定的znode节点路径，获取znode节点的值 返回ip：端口
 std::string ZookeeperClient::get_data(const char* path){
     char buffer[64] = {0};  //存储返回结果
     int buffer_len = sizeof(buffer);
